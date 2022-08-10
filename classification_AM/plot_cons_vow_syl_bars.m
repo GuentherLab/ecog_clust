@@ -1,15 +1,21 @@
  % plot top encoding electrodes for consonant, vowel, and syllable in a combined bar graph
 %
-% updated by AM 2022/7/20
+% updated by AM 2022/8/1
 clear
 set_paths()
 
+
+
  %% params
-topelc_data_filename = [ROOT_DIR, filesep, 'projectnb/busplab/Experiments/ECoG_Preprocessed_AM/topelc_data_to_surf'];
+% alpha levels for significance stars; will be adjusted for multiple comparisons
+star_levels =         [inf, 0.05, 0.01, 0.001, 0.0001]; 
+    star_symbols = {'', '*', '**', '***', '****'}; 
+ 
+ topelc_data_filename = [DATA_DIR, '/topelc_data_to_surf'];
  load_ops.top_proportion_electrodes = 0.3; %%%% will be ignored if we load from topel_data_filename
 
- plotsops.save_fig = 1; 
-    plotops.save_fig_filename = [fileparts(topelc_data_filename) filesep 'cons_vow_syl_topelc_bars'];
+ plotops.save_fig = 1; 
+    plotops.save_fig_filename = [fileparts(topelc_data_filename) '/figs/cons_vow_syl_topelc_bars'];
     plotops.output_resolution = 300;
  plotops.ylimits = [0, 1];
 plotops.xlimits = [0.3, 7];
@@ -43,6 +49,11 @@ plotops.ebar_line_width = 0.5;
 plotops.ebar_line_style = 'none';
 plotops.ebar_color = [0 0 0];
 
+plotops.nlabel_text_color = [0 0 0];
+plotops.nlabel_font_size = 10; 
+plotops.nlabel_font_weight = 'Bold'; % vs 'Normal'
+plotops.nlabel_background_color = 'none';
+
 %% load data
 % % % % % alternative: load data from topelc_data_to_surf.m
 % % % % [elc, topelc, clustlist, n_elcs, nclusts] = load_top_encoders(load_ops);
@@ -58,7 +69,9 @@ hbar = bar(yvals);
 
 hfig.Color = plotops.background_color;
 set(hfig,'Renderer', 'painters', 'Position', [plotops.fig_x_y_width_length ])
-hbar(1).LineWidth = plotops.bar_border_width; hbar(2).LineWidth = plotops.bar_border_width; hbar(3).LineWidth = plotops.bar_border_width; 
+hbar(1).LineWidth = plotops.bar_border_width; 
+    hbar(2).LineWidth = plotops.bar_border_width; 
+    hbar(3).LineWidth = plotops.bar_border_width; 
 for ibar = 1:length(hbar)
     hbar(ibar).FaceColor = plotops.bar_colors(ibar,:);
 end
@@ -109,10 +122,50 @@ hleg.Position = plotops.legend_position;
 hleg.EdgeColor = plotops.leg_border_color; 
 
 % save fig
-if  plotsops.save_fig
+if  plotops.save_fig
     print(hfig, plotops.save_fig_filename, '-dpng', ['-r', num2str(plotops.output_resolution)]); % save the image to file
 end
     
+%% statistics
+% adjust significance stars for 2-tailed test, then for Bonferroni correction
+adjusted_star_levels = star_levels / nclusts;
+alpha_bonf = 0.05 / nclusts; % 2-tailed alpha = 0.05 w/ Bonferroni correction
+
+feats = {'cons', 'vow', 'word'};
+    nfeats = length(feats);
+
+cel = cell(nclusts,1); 
+for ifeat = 1:nfeats
+    thisfeat = feats{ifeat};
+    topelc{:,['n_', thisfeat]} = sum(topelc{:,[thisfeat, '_RL']}, 2);  % n elcs in each clust which are top coders for this feature
+    % chi-test against the null hypothesis that top encoding electrodes are evenly distributed acrocss clusters
+    [chi_significant(ifeat), chi_p(ifeat), chi_stats(ifeat)] = chi2gof([1:nclusts]', 'Frequency',topelc{:,['n_', thisfeat]},...
+        'Expected',load_ops.top_proportion_electrodes * topelc.n_elc, 'Emin',0);
+    topelc{:, ['sgn_stars_', thisfeat]} = cel; 
+    for iclust = 1:nclusts
+        X = topelc{iclust,['n_', thisfeat]}; % n elcs in this clust which are top coders for this feature
+        N = topelc.n_elc(iclust); % total elcs in this clust
+        % use X-1 because matlab binocdf with ‘upper’ computes the probability of getting above X...
+        %       .... whereas we want to ask (in the upper half of the test) the inclusive probably of getting our outcome or above
+        topelc{iclust, ['p_binotest_', thisfeat]} = 2 * min([binocdf(X, N, load_ops.top_proportion_electrodes),...  % 2* because 2-tailed
+                                         binocdf(X-1,N,load_ops.top_proportion_electrodes,'upper')]); 
+        starind_bonf = find(topelc{iclust, ['p_binotest_', thisfeat]} < adjusted_star_levels, 1, 'last');
+        topelc{iclust, ['sgn_stars_bonf_', thisfeat]} = {star_symbols{starind_bonf}}; 
+    end
+    topelc{:, ['sgn_bonf_',thisfeat]} = topelc{:, ['p_binotest_', thisfeat]} < alpha_bonf;
     
+     % FDR correction
+     topelc{:, ['q_binotest_', thisfeat]} = conn_fdr(topelc{:, ['p_binotest_', thisfeat]}); 
+     for iclust = 1:nclusts % need to run FDR and set star values after computing all base p-values
+         starind = find(topelc{iclust, ['q_binotest_', thisfeat]} < star_levels, 1, 'last');
+         topelc{iclust, ['sgn_stars_', thisfeat]} = {star_symbols{starind}};
+     end
+     topelc{:, ['sgn_fdr_',thisfeat]} = topelc{:, ['q_binotest_', thisfeat]} < 0.05;
+end
+     
+%%%%% no code written for sgn stars because all qval are > 0.05
+
+
+
     
     
