@@ -1,9 +1,9 @@
-% load anad organize top-encoding electrodesor consonant, vowel, syllable
+% load and organize top-encoding electrodes for consonant, vowel, syllable
 % only loads onset-aligned, not stim-aligned data
 %
 % % % run this script before running surf_top_coders_per_cluster and plot_right_vs_left
 %
-% updated by AM 2022/7/29
+% updated by AM 2022/8/9
 
 function [elc, topelc, clustlist, n_elcs, nclusts] = load_top_encoders(ops)
 
@@ -15,11 +15,12 @@ field_default('ops','preloaded_electrode_data_filename' , [ROOT_DIR, filesep, 'p
 load(ops.preloaded_electrode_data_filename,'ow_sorted') % onset data sorted by word coding
 elc = sortrows(ow_sorted,{'subject','electrode'}); % sort electrodes by subject and electrode ID
 elc.cluster_name = string(elc.cluster_name);
-load([ROOT_DIR, filesep, 'project/busplab/software/ecog/data/clusterkey.mat'], 'clusterkey')
+load([ROOT_DIR, filesep, 'project/busplab/software/ecog/ecog_clust/data/clust_timing_kuzdeba_table_2.mat'], 'clusterkey')
     global_clust_num_list = [3 4 5 6 7 8]; % voice onset-aligned clusters only
     
 savename = [ROOT_DIR, filesep, 'projectnb/busplab/Experiments/ECoG_Preprocessed_AM/topelc_data_to_surf']; 
-    vars_to_save = {'elc', 'elc_cons', 'elc_vow', 'elc_word', 'elc_anytop', 'topelc', 'top_proportion_electrodes', 'clustlist', 'clusterkey','global_clust_num_list'};
+    vars_to_save = {'elc', 'elc_cons', 'elc_vow', 'elc_word', 'elc_anytop', 'topelc', 'top_proportion_electrodes',...
+        'clustlist', 'clusterkey','global_clust_num_list', 'nclusts'};
 
 %%
  %%%%%%%%%%%%%%%% organize data %%%%%%%%%%
@@ -122,6 +123,23 @@ for iclust = 1:nclusts
     topelc.cons_word_left_n(iclust) = n_top_cons_or_word_this_clust_leftside; 
     topelc.cons_word_left_prop(iclust) = n_top_cons_or_word_this_clust_leftside / n_top_cons_or_word_this_clust; 
 end
+
+%% add clust timing data
+topelc.start = nan(height(topelc),1);
+topelc.onset = nan(height(topelc),1);
+topelc.peak = nan(height(topelc),1);
+topelc.offset = nan(height(topelc),1);
+topelc.end = nan(height(topelc),1);
+
+vars_to_copy = {'start','onset','peak','offset','end'};
+for iclust = 1:nclusts
+   clustname = topelc.clust{iclust};
+    matchrow =  strcmp(clustname, clusterkey.name) & strcmp('voice_onset', clusterkey.align_name);
+    topelc{iclust,vars_to_copy} = clusterkey{matchrow,vars_to_copy}; 
+end
+topelc.width = topelc.end - topelc.start;
+topelc.width_to_peak = topelc.peak - topelc.start;
+topelc.width_from_peak = topelc.end - topelc.peak; 
 
 %%
 top_proportion_electrodes = ops.top_proportion_electrodes;
