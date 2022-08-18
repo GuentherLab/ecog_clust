@@ -89,7 +89,7 @@ set(gca,'YTick',plotops.yticks)
 xlim([plotops.xlimits]);
 ylim(plotops.ylimits); 
 h=gca; h.XAxis.TickLength = plotops.xticklength;
-hxlabel = xlabel({'Cluster ID'}); 
+hxlabel = xlabel({'Cluster'}); 
     hxlable.Position = plotops.xlabel_position;
 hylabel = ylabel({'Proportion of top-30% electrodes'});
     hylabel.Position = plotops.ylabel_position;

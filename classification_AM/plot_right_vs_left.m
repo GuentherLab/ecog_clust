@@ -183,9 +183,14 @@ plotops.yline_width = 2;
     plotops.yline_color =  [0.15 0.15 0.15];
 plotops.annot_pos_xy =  [0.70, 0.78]; % position of pval annotation
 plotops.bar_border_width =  2;
-plotops.bar_colors =  [1 0 0; ...
-                      0 1 0;...
-                      0 0 1]; 
+
+% plotops.bar_colors =  [1 0 0; ...    % RGB bars
+%                       0 1 0;...
+%                       0 0 1]; 
+plotops.bar_colors =  [0.6 0.6 0.6; ...  % gray bars
+                      0.6 0.6 0.6;...
+                      0.6 0.6 0.6];                   
+
 plotops.axes_line_width =  2;
 plotops.axis_font_size =  13;
 plotops.axes_numbers_bold =  'bold';
@@ -301,7 +306,7 @@ star_scat = textscatter(1:nfeats, star_yval*ones(1,nfeats), featlat.sgn_stars, '
 % labels for n electrodes per group
 labels_n_elc = [featlat.n_left, featlat.n_total]; 
 nlabel_text = strrep(cellstr([num2str(labels_n_elc(:,1)), repmat('/',nfeats,1), strtrim(num2str(labels_n_elc(:,2)))]),' ','');
-nlabel_yval = min(ebar_lims(:)) / 2; % labels halfway up to bottom of lowest errorbar
+nlabel_yval = min(featlat.ebar_lims(:)) / 2; % labels halfway up to bottom of lowest errorbar
 nlabel_scat = textscatter(1:nfeats, nlabel_yval*ones(1,nfeats), nlabel_text,...
     'FontSize',plotops.nlabel_font_size, 'ColorData',plotops.nlabel_text_color,...
     'FontWeight',plotops.nlabel_font_weight, 'BackgroundColor',plotops.nlabel_background_color);
