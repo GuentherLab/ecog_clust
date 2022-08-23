@@ -1,4 +1,7 @@
 % plot top percentage electrodes on brain, do chi tests comparing clusters and plot accompanying bar graphs
+%
+% adapted by AM from Liam's script top_raw_pct_p_val_auto
+
 
 close all force
 clear all
